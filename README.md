@@ -1,5 +1,9 @@
 # Book Club NFT
 
+### VSCode
+
+Abra o projeto pelo arquivo de [workspace](.vscode/bookclubnft.code-workspace) para que as configurações estejam corretas
+
 ### Explicação do contrato por GPT
 
 Este contrato é um exemplo de como implementar um contrato ERC1155 com metadados armazenados no contrato e suporte para a emissão de dois tipos de NFTs: um exclusivo da Bankless e um que representa a leitura de um livro.
