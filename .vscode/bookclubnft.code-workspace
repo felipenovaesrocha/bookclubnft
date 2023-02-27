@@ -13,5 +13,14 @@
 		"solidity.remappings": [
 			"@openzeppelin/=packages/hardhat/node_modules/@openzeppelin/"
 		]
+	},
+	"extensions": {
+		"recommendations": [
+			"juanblanco.solidity",
+			"tintinweb.solidity-visual-auditor",
+			"tintinweb.solidity-metrics",
+			"tintinweb.vscode-solidity-flattener",
+			"esbenp.prettier-vscode"
+		]
 	}
 }
