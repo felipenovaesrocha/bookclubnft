@@ -9,18 +9,9 @@ export default function Home() {
     <main className={"h-screen flex items-center justify-center"}>
       <div className={"mx-auto"}>
         <p className="text-3xl font-bold underline">
-          Get started by editing&nbsp;
-          <code className={""}>app/page.tsx</code>
+          Pege seu NFT do seu livro predileto!&nbsp;
         </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-          </a>
-        </div>
+        <div></div>
       </div>
     </main>
   );

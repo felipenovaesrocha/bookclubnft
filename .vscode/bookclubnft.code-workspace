@@ -10,7 +10,7 @@
 		},
 		{
 			"name": "WebApp",
-			"path": "../packages/bookclub-app"
+			"path": "../packages/bookclub-app",
 		}
 	],
 	"settings": {
