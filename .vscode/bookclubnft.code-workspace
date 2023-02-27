@@ -7,6 +7,10 @@
 		{
 			"name": "Hardhat",
 			"path": "../packages/hardhat"
+		},
+		{
+			"name": "WebApp",
+			"path": "../packages/bookclub-app"
 		}
 	],
 	"settings": {
