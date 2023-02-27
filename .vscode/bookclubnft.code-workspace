@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "Root",
+			"path": ".."
+		},
+		{
+			"name": "Hardhat",
+			"path": "../packages/hardhat"
+		}
+	],
+	"settings": {
+		"solidity.remappings": [
+			"@openzeppelin/=packages/hardhat/node_modules/@openzeppelin/"
+		]
+	}
+}
