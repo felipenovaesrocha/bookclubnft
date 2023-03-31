@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155URIS
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @dev This is an ERC1155 implementation of BookClubNFT contract.
@@ -23,6 +24,7 @@ contract BookClubNFT is
     Initializable,
     ERC1155Upgradeable,
     ERC1155URIStorageUpgradeable,
+    UUPSUpgradeable,
     OwnableUpgradeable
 {
     // Constants for token types
@@ -57,7 +59,10 @@ contract BookClubNFT is
      * @param tokenId uint256 ID of the token to set the URI for
      * @param tokenURI string URI to set for the token
      */
-    function setURI(uint256 tokenId, string memory tokenURI) public onlyOwner {
+    function setURI(
+        uint256 tokenId,
+        string memory tokenURI
+    ) public virtual onlyOwner {
         _setURI(tokenId, tokenURI);
     }
 
@@ -66,7 +71,7 @@ contract BookClubNFT is
      * @dev The exclusive NFT is a one-time use token that can only be minted once per address
      * @param to address Recipient of the exclusive NFT
      */
-    function mintExclusiveNFT_owner(address to) external onlyOwner {
+    function mintExclusiveNFT_owner(address to) external virtual onlyOwner {
         _mintExclusiveNFT(to);
     }
 
@@ -74,7 +79,7 @@ contract BookClubNFT is
      * @notice Internal function to mint an Exclusive Bankless NFT for a specific address
      * @dev The exclusive NFT is a one-time use token that can only be minted once per address
      */
-    function _mintExclusiveNFT(address to) internal {
+    function _mintExclusiveNFT(address to) internal virtual {
         require(
             balanceOf(to, BANKLESS_EXCLUSIVE_NFT) == 0,
             "[BC:1] Only 1 exclusive NFT per address"
@@ -87,7 +92,7 @@ contract BookClubNFT is
      * @notice Mints the exclusive Bankless NFT for the caller
      * @dev The exclusive NFT is a one-time use token that can only be minted once per address
      */
-    function mintBanklessExclusiveNFT() external {
+    function mintBanklessExclusiveNFT() external virtual {
         _mintExclusiveNFT(msg.sender);
     }
 
@@ -96,7 +101,10 @@ contract BookClubNFT is
      * @param to address Recipient of the Book NFT
      * @param bookId uint256 ID of the Book NFT to mint
      */
-    function mintBookNFT(address to, uint256 bookId) public onlyOwner {
+    function mintBookNFTDirect(
+        address to,
+        uint256 bookId
+    ) public virtual onlyOwner {
         require(
             bookId >= BOOK_NFT_RANGE_START && bookId <= BOOK_NFT_RANGE_END,
             "[BC:2] Invalid book ID"
@@ -105,7 +113,9 @@ contract BookClubNFT is
         emit BookNFTMinted(to, bookId);
     }
 
-    function uri(uint256 tokenId)
+    function uri(
+        uint256 tokenId
+    )
         public
         view
         virtual
@@ -121,8 +131,11 @@ contract BookClubNFT is
      * @param bookId uint256 ID of the Book NFT to mint
      * @param proof bytes32[] Proof of inclusion in the merkle tree
      */
-    function mintBookNFT(uint256 bookId, bytes32[] calldata proof) public {
-        _mintBookNFT(msg.sender, bookId, proof);
+    function mintClaimBookNFT(
+        uint256 bookId,
+        bytes32[] calldata proof
+    ) external virtual {
+        _internalMintBookNFT(msg.sender, bookId, proof);
     }
 
     /**
@@ -132,11 +145,11 @@ contract BookClubNFT is
      * @param bookId The ID of the book NFT to mint.
      * @param proof The Merkle proof of the address claiming the NFT.
      */
-    function _mintBookNFT(
+    function _internalMintBookNFT(
         address to,
         uint256 bookId,
         bytes32[] calldata proof
-    ) internal {
+    ) internal virtual {
         require(
             bookId >= BOOK_NFT_RANGE_START && bookId <= BOOK_NFT_RANGE_END,
             "[BC:2] Invalid book ID"
@@ -155,7 +168,7 @@ contract BookClubNFT is
         );
 
         require(
-            MerkleProofUpgradeable.verify(
+            MerkleProofUpgradeable.verifyCalldata(
                 proof,
                 merkleRoot,
                 keccak256(abi.encodePacked(to))
@@ -176,10 +189,10 @@ contract BookClubNFT is
      * @param bookId uint256 ID of the Book NFT to set the merkle root for
      * @param merkleRoot bytes32 Merkle root to set for the Book NFT
      */
-    function setBookMerkleRoot(uint256 bookId, bytes32 merkleRoot)
-        public
-        onlyOwner
-    {
+    function setBookMerkleRoot(
+        uint256 bookId,
+        bytes32 merkleRoot
+    ) public virtual onlyOwner {
         require(
             bookId >= BOOK_NFT_RANGE_START && bookId <= BOOK_NFT_RANGE_END,
             "[BC:2] Invalid book ID"
@@ -193,7 +206,9 @@ contract BookClubNFT is
      * @param bookId The ID of the book to get the Merkle root for.
      * @return The Merkle root for the specified book ID.
      */
-    function getBookMerkleRoot(uint256 bookId) public view returns (bytes32) {
+    function getBookMerkleRoot(
+        uint256 bookId
+    ) public view virtual returns (bytes32) {
         require(
             bookId >= BOOK_NFT_RANGE_START && bookId <= BOOK_NFT_RANGE_END,
             "[BC:2] Invalid book ID"
@@ -212,7 +227,7 @@ contract BookClubNFT is
         address to,
         uint256 bookId,
         bool value
-    ) public onlyOwner {
+    ) public virtual onlyOwner {
         require(
             bookId >= BOOK_NFT_RANGE_START && bookId <= BOOK_NFT_RANGE_END,
             "[BC:2] Invalid book ID"
@@ -227,11 +242,10 @@ contract BookClubNFT is
      * @param bookId The ID of the book NFT to check the claimed status for.
      * @return A boolean indicating if the specified address has claimed the specified book NFT.
      */
-    function hasClaimedBookNFT(address to, uint256 bookId)
-        public
-        view
-        returns (bool)
-    {
+    function hasClaimedBookNFT(
+        address to,
+        uint256 bookId
+    ) public view virtual returns (bool) {
         require(
             bookId >= BOOK_NFT_RANGE_START && bookId <= BOOK_NFT_RANGE_END,
             "[BC:2] Invalid book ID"
@@ -239,4 +253,6 @@ contract BookClubNFT is
 
         return _claimedBookNFTs[to][bookId];
     }
+
+    function _authorizeUpgrade(address) internal virtual override onlyOwner {}
 }

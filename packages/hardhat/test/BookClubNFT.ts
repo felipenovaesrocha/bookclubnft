@@ -1,99 +1,120 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
+// import lib to create merkler tree root, hash and proof
+import { MerkleTree } from "merkletreejs";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { BookClubNFT } from "../typechain-types";
+import { keccak256 } from "ethers/lib/utils";
+
+// leave like list random eth address of 40 bytes starting with 0x
+const leaves = [
+  "0x2F9e113434aeBDd70bB99cB6505e1F726C578D6d",
+  "0x3CeeF2C35d55a61514CeCe32C165fB96536d76c4",
+  "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "0xDd90c56CfD1B60B2d84B8a164c03e57628D7C70A",
+  "0x90a3a3F7Cbb46DdA8A06B0Cf49b7cF56f68e1d91",
+  "0x9Cf51Dd5b5F5c3dc3bBc54bB78B8d09c0C4Fe6B4",
+  "0x7e1746Bfd16D74C68dcD6748b55aE6Df6B165F6c",
+  "0x6Bb269f8d7cE70828e238e1fc22d5A5b1c5A5a5f",
+  "0xC8f83C67b1ddD6283a3d0DAA12BcF3141f76Fc7C",
+  "0x7E92476f01D4720eB86425E544d7C860b2efCf16",
+  "0x34B94d39B6B463bF71Ea8d7fE9292fD9641a2399",
+  "0xaE205ACa32dc53560eC00dC8B13B6161a3F7F3f2",
+].map((leaf) => keccak256(leaf.toLowerCase()));
+
+const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+
+function createMerkleTreeRootAndProof(
+  address: string = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+) {
+  const dataToProve = address.toLowerCase();
+  const dataToProveHash = keccak256(dataToProve);
+  console.log(`dataToProveHash: ${dataToProveHash}`);
+
+  const proof = tree.getHexProof(dataToProveHash);
+
+  console.log(`Prova de inclusão para o endereço ${dataToProve}:`);
+  // console.log(`${JSON.stringify(proof, null, 4)}`);
+
+  const root = tree.getHexRoot();
+
+  const sa = tree.verify(proof, dataToProveHash, root);
+  console.log(`Verificação da prova: ${sa}`);
+
+  console.log(`Raiz da árvore: ${root}`);
+
+  return { root, proof };
+}
+
+interface BookClubNFTFixture {
+  owner: SignerWithAddress;
+  otherAccount: SignerWithAddress;
+  bookClubNFT: BookClubNFT;
+}
+
+interface Proof {
+  position: "left" | "right";
+  data: Buffer;
+}
 
 describe("BookClubNFT", function () {
-  // // We define a fixture to reuse the same setup in every test.
-  // // We use loadFixture to run this setup once, snapshot that state,
-  // // and reset Hardhat Network to that snapshot in every test.
-  // async function deployOneYearLockFixture() {
-  //   const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-  //   const ONE_GWEI = 1_000_000_000;
-  //   const lockedAmount = ONE_GWEI;
-  //   const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
-  //   // Contracts are deployed using the first signer/account by default
-  //   const [owner, otherAccount] = await ethers.getSigners();
-  //   const Lock = await ethers.getContractFactory("Lock");
-  //   const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
-  //   return { lock, unlockTime, lockedAmount, owner, otherAccount };
-  // }
-  // describe("Deployment", function () {
-  //   it("Should set the right unlockTime", async function () {
-  //     const { lock, unlockTime } = await loadFixture(deployOneYearLockFixture);
-  //     expect(await lock.unlockTime()).to.equal(unlockTime);
-  //   });
-  //   it("Should set the right owner", async function () {
-  //     const { lock, owner } = await loadFixture(deployOneYearLockFixture);
-  //     expect(await lock.owner()).to.equal(owner.address);
-  //   });
-  //   it("Should receive and store the funds to lock", async function () {
-  //     const { lock, lockedAmount } = await loadFixture(
-  //       deployOneYearLockFixture
-  //     );
-  //     expect(await ethers.provider.getBalance(lock.address)).to.equal(
-  //       lockedAmount
-  //     );
-  //   });
-  //   it("Should fail if the unlockTime is not in the future", async function () {
-  //     // We don't use the fixture here because we want a different deployment
-  //     const latestTime = await time.latest();
-  //     const Lock = await ethers.getContractFactory("Lock");
-  //     await expect(Lock.deploy(latestTime, { value: 1 })).to.be.revertedWith(
-  //       "Unlock time should be in the future"
-  //     );
-  //   });
-  // });
-  // describe("Withdrawals", function () {
-  //   describe("Validations", function () {
-  //     it("Should revert with the right error if called too soon", async function () {
-  //       const { lock } = await loadFixture(deployOneYearLockFixture);
-  //       await expect(lock.withdraw()).to.be.revertedWith(
-  //         "You can't withdraw yet"
-  //       );
-  //     });
-  //     it("Should revert with the right error if called from another account", async function () {
-  //       const { lock, unlockTime, otherAccount } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
-  //       // We can increase the time in Hardhat Network
-  //       await time.increaseTo(unlockTime);
-  //       // We use lock.connect() to send a transaction from another account
-  //       await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
-  //         "You aren't the owner"
-  //       );
-  //     });
-  //     it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
-  //       const { lock, unlockTime } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
-  //       // Transactions are sent using the first signer by default
-  //       await time.increaseTo(unlockTime);
-  //       await expect(lock.withdraw()).not.to.be.reverted;
-  //     });
-  //   });
-  //   describe("Events", function () {
-  //     it("Should emit an event on withdrawals", async function () {
-  //       const { lock, unlockTime, lockedAmount } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
-  //       await time.increaseTo(unlockTime);
-  //       await expect(lock.withdraw())
-  //         .to.emit(lock, "Withdrawal")
-  //         .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
-  //     });
-  //   });
-  //   describe("Transfers", function () {
-  //     it("Should transfer the funds to the owner", async function () {
-  //       const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
-  //       await time.increaseTo(unlockTime);
-  //       await expect(lock.withdraw()).to.changeEtherBalances(
-  //         [owner, lock],
-  //         [lockedAmount, -lockedAmount]
-  //       );
-  //     });
-  //   });
-  // });
+  let ROOT_MK: string;
+  let PROOF: Array<string>;
+  let fixture: () => Promise<BookClubNFTFixture>;
+
+  // create merkle tree root and proof
+  const { root: _root, proof: _proof } = createMerkleTreeRootAndProof();
+  ROOT_MK = _root;
+  PROOF = _proof;
+  // before each it
+  beforeEach(async function () {
+    //create Fixture to deploy BookClubNFT contract
+    fixture = async function (): Promise<BookClubNFTFixture> {
+      const [owner, otherAccount] = await ethers.getSigners();
+      const BookClubNFT = await ethers.getContractFactory("BookClubNFT");
+      const bookClubNFT = (await upgrades.deployProxy(BookClubNFT, [], {
+        initializer: "initialize",
+      })) as BookClubNFT;
+      // const bookClubNFT = await BookClubNFT.deploy();
+      await bookClubNFT.deployed();
+
+      return { owner, otherAccount, bookClubNFT };
+    };
+  });
+
+  // should set root proof at BookClubNFT contract
+  it("should set root proof at BookClubNFT contract", async function () {
+    const { owner, otherAccount, bookClubNFT } =
+      await loadFixture<BookClubNFTFixture>(fixture);
+
+    const bookID = bookClubNFT.BOOK_NFT_RANGE_START();
+    // call setBookMerkleRoot with owner account
+    await bookClubNFT.connect(owner).setBookMerkleRoot(bookID, ROOT_MK);
+
+    const merkleRoot = await bookClubNFT.getBookMerkleRoot(bookID);
+
+    expect(merkleRoot).to.equal(ROOT_MK);
+  });
+
+  it("should mint claim with proof", async function () {
+    const { owner, otherAccount, bookClubNFT } =
+      await loadFixture<BookClubNFTFixture>(fixture);
+
+    const bookID = bookClubNFT.BOOK_NFT_RANGE_START();
+    // expect with reverted message
+    await expect(
+      bookClubNFT.mintClaimBookNFT(bookID, PROOF)
+    ).to.be.revertedWith(new RegExp("BC:5")); //'[BC:5] BookId dont have root Merkle tree'
+
+    // set root merkle tree
+    await bookClubNFT.connect(owner).setBookMerkleRoot(bookID, ROOT_MK);
+
+    await bookClubNFT.mintClaimBookNFT(bookID, PROOF);
+
+    expect(await bookClubNFT.hasClaimedBookNFT(owner.address, bookID)).to.equal(
+      true
+    );
+  });
 });
